@@ -47,8 +47,8 @@ def register_post():
     new_user = User(username=u, email=e, password=generate_password_hash(p, method='sha256'), id=i)
     db.session.add(new_user)  # add the new user to the database
     db.session.commit()
-    flash('Welcome to Dough')
-    return redirect(url_for('main.about'))  # auth.login
+    flash('Welcome to Dough!')
+    return redirect(url_for('auth.login'))  # auth.login
 
 
 @auth.route('/logout')  # ***** add message?
