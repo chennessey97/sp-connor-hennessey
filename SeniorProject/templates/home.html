@@ -2,11 +2,10 @@
 {% block content %}
 
     <h1 style="align: center">Welcome to Dough &nbsp; </h1>
-    <img src="/static/png/003-piggy-bank.png" alt="Piggy Bank" height="72px" width="72px" class="navbar-nav nav-link site-header">
+    <img src="{{ url_for('static', filename='003-piggy-bank.png') }}" alt="Piggy Bank" height="72px" width="72px" class="navbar-nav nav-link site-header">
     <br> <p style="align: center">
         Register or login to start achieving your financial goals!
     </p> <br>
-
     <div align="center" class="content-section">
         <form method="POST" action="">
             {{ form.hidden_tag() }}
@@ -14,7 +13,6 @@
                 <legend class="border-bottom mb-4">Join Today</legend>
                 <div class="form-group">
                     {{ form.username.label(class="form-control-label") }}
-
                     {% if form.username.errors %}
                         {{ form.username(class="form-control form-control-lg is-invalid") }}
                         <div class="invalid-feedback">
@@ -73,7 +71,7 @@
     </div>
     <div align="center" class="border-top pt-3">
         <small class="text-muted">
-            Already Have An Account? <a class="ml-2" href="login.html">Sign In</a>
+            Already Have An Account? <a class="ml-2" href="{{ url_for('auth.login') }}">Sign In</a>
         </small>
     </div>
 
