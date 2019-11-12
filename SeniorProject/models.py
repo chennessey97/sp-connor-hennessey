@@ -8,7 +8,10 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100))
-    # name = db.Column(db.String(1000))
+    image = db.Column(db.String(50), nullable=False, default='static/user.png')
+
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
 class Spreadsheet(db.Model):  # still need this? *************************************
     id = db.Column(db.Integer(), unique=True, nullable=False)  # primary keys are required by SQLAlchemy
