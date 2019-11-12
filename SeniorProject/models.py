@@ -20,7 +20,7 @@ class Spreadsheet(db.Model):  # still need this? *******************************
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
-    transID = db.Column(db.Integer(), primary_key=True)
+    transID = db.Column(primary_key=True)
     date = db.Column()
     description = db.Column()
     category = db.Column()

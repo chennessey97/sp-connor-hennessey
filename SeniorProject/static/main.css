@@ -26,7 +26,7 @@ p { margin: 0 0 10px 0; }
 { font-size:40px; margin-top:0px; position:absolute; justify-content: center; margin-top:10px; }
 
 .alert-error { background-color:#e59a9a; color: white; }
-.alert-success { background-color:#e6ffcc; color:white; }
+.alert-success { background-color:#00cc00; color:white; }
 
 .img
 { height:100%; width:auto; vertical-align:middle; }

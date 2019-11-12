@@ -13,6 +13,8 @@ import pandas as pd
 from pandas import ExcelWriter, ExcelFile
 import sqlite3
 from datetime import datetime
+import csv
+from csv import QUOTE_NONNUMERIC
 
 
 main = Blueprint('main', __name__)
@@ -77,26 +79,21 @@ def data_upload():
             db.session.add(new_input)
             db.session.commit()
 
-            connection = db.engine.raw_connection()
-            cursor = connection.cursor()
-            cols = [1, 2, 4, 6]
-            df = pd.read_excel('SeniorProject/uploads/example.xlsx', usecols=cols)
+            #connection = db.engine.raw_connection()
+            #cursor = connection.cursor()
+            #addquotes = pd.to_csv(filename, index=False, quotechar='"', header=None, quoting=csv.QUOTE_NONNUMERIC)
             # df.to_sql('transactions', con=engine)  # index=False
 
-            read = Transaction(transID=uuid1().time_low, date=df['Date'], description=df['Original Description'], category=df['Category'], amount=df['Amount'], userID=current_user.id)
-            db.session.add(read)
-            db.session.commit()
-
-            #for i in df.index:
-            #    new_row =
-            # df.execute('CREATE TABLE DATA (Date, Original Description, Category, Amount)')
-            #df.to_sql('DATA', db, if_exists='replace', index=False)
-            #d.execute('''SELECT*FROM DATA''')
-            #for row in d.fetchall():
-            #    print(row)
-
-            flash('File successfully uploaded!', category='alert-success')
-            return render_template(url_for('main.data'))
+            cols = [1, 2, 4, 6]
+            df = pd.read_excel('SeniorProject/uploads/example.xlsx', usecols=cols)
+            df.update('"' + df[['Date', 'Original Description', 'Category', 'Amount']].astype(str) + '"')
+            for i, row in df.iterrows():
+                r = Transaction(transID=uuid1().time_low, date=row['Date'], description=row['Original Description'], category=row['Category'], amount=row['Amount'], userID=current_user.id)
+                db.session.add(r)
+                db.session.commit()
+            file.save(secure_filename(file.filename))
+            flash("File Successfully Uploaded!", category='alert-success')
+            return render_template('data.html')
         else:
             flash('Allowed file type is .xlsx')
-            return render_template(url_for('main.data'))
+            return render_template('data.html')

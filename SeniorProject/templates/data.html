@@ -5,17 +5,6 @@
 
     <div class="input-file" align="left">
         <p>Upload your spreadsheets:
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <ul class=flashes>
-                        {% for message in messages %}
-                            <div class="alert alert-error{{ category }}">
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            {% endwith %}
             <form method="POST" action="" enctype=multipart/form-data>
                 <dl>
                     <p>
@@ -25,6 +14,17 @@
                 <p>
                     <input type=submit value=Upload>
                 </p>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <ul class=flashes>
+                            {% for message in messages %}
+                                <div class="alert alert-success{{ category }}">
+                                    <span>Uploaded: example.xlsx </span>
+                                </div>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
             </form>
         </p>
     </div>
