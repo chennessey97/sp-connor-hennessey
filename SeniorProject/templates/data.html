@@ -1,6 +1,33 @@
 {% extends "layout.html" %}
 {% block content %}
 
-    <h1>User Data Page</h1>
+    <h1>User Data Page</h1><br><br><br><br>
+
+    <div class="input-file" align="left">
+        <p>Upload your spreadsheets:
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class=flashes>
+                        {% for message in messages %}
+                            <div class="alert alert-error{{ category }}">
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            <form method="POST" action="" enctype=multipart/form-data>
+                <dl>
+                    <p>
+                        <input type="file" name="file" autocomplete="off" required>
+                    </p>
+                </dl>
+                <p>
+                    <input type=submit value=Upload>
+                </p>
+            </form>
+        </p>
+    </div>
+
 
 {% endblock content %}

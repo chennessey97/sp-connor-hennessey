@@ -38,7 +38,7 @@
                         {{ form.password(class="form-control form-control-lg is-invalid") }}
                         <div class="invalid-feedback">
                             {% for error in form.password.errors %}
-                                <span>{{ error }}</span>
+                                <div class>"{{ category }}">{{ error }}</div>
                             {% endfor %}
                         </div>
                     {% else %}
@@ -51,7 +51,7 @@
                         {{ form.confirm_password(class="form-control form-control-lg is-invalid") }}
                         <div class="invalid-feedback">
                             {% for error in form.confirm_password.errors %}
-                                <span>{{ error }}</span>
+                                <div class>"{{ category }}">{{ error }}</div>
                             {% endfor %}
                         </div>
                     {% else %}

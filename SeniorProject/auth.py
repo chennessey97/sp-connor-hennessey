@@ -22,7 +22,7 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     # check if user exists - take the user supplied password, hash it, and compare it to the hashed password in db
     if not user or not check_password_hash(user.password, password):
-        flash('Please check your login details and try again.')
+        flash('Please check your login details and try again.', 'alert-error')
         return redirect(url_for('auth.login'))  # if user doesn't exist or password is wrong, reload the page
     login_user(user, remember=remember)  # if the above check passes, then we know the user has the right credentials
     return redirect(url_for('main.profile'))
@@ -40,14 +40,14 @@ def register_post():
     i = uuid1().time_low
     user = User.query.filter_by(email=e).first()  # if this returns a user, then the email already exists in db
     if user:  # if a user is found, we want to redirect back to signup page so user can try again
-        flash('Email address already exists')
+        flash('Email address already exists', 'alert-error')
         return redirect(url_for('main.register'))
 
     # create new user with the form data. Hash the password so plaintext version isn't saved.
     new_user = User(username=u, email=e, password=generate_password_hash(p, method='sha256'), id=i)
     db.session.add(new_user)  # add the new user to the database
     db.session.commit()
-    flash('Welcome to Dough!')
+    flash('Welcome to Dough!', category='alert-success')
     return redirect(url_for('auth.login'))  # auth.login
 
 
