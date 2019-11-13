@@ -85,7 +85,6 @@ def data_upload():
             return render_template('data.html')
         if file:  # and allowed_file(file.filename): **************************************************
             filename = file.filename
-
             date = datetime.now()
             new_input = FileInput(id=uuid1().time_low, user=current_user.username, name=filename, date=date)
             #check = FileInput.query.filter_by(name=filename).first()  # if this returns a user, then the email already exists in db
