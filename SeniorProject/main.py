@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from flask import Blueprint, render_template, redirect, url_for, request, flash, app
 from uuid import uuid1
 from flask_login import login_user, logout_user, login_required
-from .models import User, Spreadsheet, FileInput, Transaction
+from .models import User, FileInput, Transaction
 from .forms import RegistrationForm, LoginForm, UpdateAccountForm
 from . import db
 import os
@@ -56,10 +56,16 @@ def profile():
     return render_template('profile.html', title='Profile', image=image_file, form=form)
 
 
-@main.route("/dashboard")
-@login_required
-def dashboard():
-    return render_template('dashboard.html', title='Dashboard')
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join('C:/Users/Connor/PycharmProjects/sp-connor-hennessey', 'static/profile_pics', picture_fn)
+    output_size = (125, 125)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+    return picture_fn
 
 
 @main.route("/data")
@@ -109,17 +115,13 @@ def data_upload():
             return render_template('data.html')
 
 
-def save_picture(form_picture):
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join('C:/Users/Connor/PycharmProjects/sp-connor-hennessey', 'static/profile_pics', picture_fn)
+@main.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template('dashboard.html', title='Dashboard')
 
-    output_size = (125, 125)
-    i = Image.open(form_picture)
-    i.thumbnail(output_size)
-    i.save(picture_path)
 
-    return picture_fn
-
+def generate_graph():
+    data = pd.DataFrame(data='transactions', columns=['Date', 'Amount'])  # w/ curr userID
+    data.plot(x='Date', y='Amount', kind='bar')
 

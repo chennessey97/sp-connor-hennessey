@@ -13,14 +13,6 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
-class Spreadsheet(db.Model):  # still need this? *************************************
-    id = db.Column(db.Integer(), unique=True, nullable=False)  # primary keys are required by SQLAlchemy
-    username = db.Column(db.String(100), primary_key=True, unique=True, nullable=False)
-    date = db.Column()
-    description = db.Column()
-    category = db.Column()
-    amount = db.Column()
-
 class Transaction(db.Model):
     __tablename__ = 'transactions'
     transID = db.Column(primary_key=True)
@@ -37,5 +29,11 @@ class FileInput(db.Model):
     name = db.Column(db.String(100))  # file name?
     date = db.Column(db.DateTime())
 
-
+class Goal(db.Model):
+    __tablename__ = 'goals'
+    id = db.Column(db.Integer(), unique=True, nullable=False)
+    userID = db.Column(db.Integer(), nullable=False)
+    goal = db.Column(db.Integer(), nullable=False)
+    # totalspent = db.Column(db.Integer())
+    # shouldsave = db.Column(db.Integer())
 
