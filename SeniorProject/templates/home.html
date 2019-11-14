@@ -2,7 +2,7 @@
 {% block content %}
     {% if not current_user.is_authenticated %}
         <h1 style="align: center">Welcome to Dough &nbsp; </h1>
-        <img src="{{ url_for('static', filename='003-piggy-bank.png') }}" alt="Piggy Bank" height="72px" width="72px" class="navbar-nav nav-link site-header">
+        <img src="{{ url_for('static', filename='icons/003-piggy-bank.png') }}" alt="Piggy Bank" height="72px" width="72px" class="navbar-nav nav-link site-header">
         <br> <p style="align: center">
             Register or login to start achieving your financial goals!
         </p> <br>
@@ -24,6 +24,20 @@
     {% if current_user.is_authenticated %}
         <h1 class="title"> Welcome back to Dough, {{ current_user.username }}! </h1>
         <br> <br>
+
+        {% for note in notes %}
+        <article class="media content-section">
+          <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics/' + post.author.image) }}">
+          <div class="media-body">
+            <div class="article-metadata">
+              <a class="mr-2" href="#">{{ note.author.username }}</a>
+              <small class="text-muted">{{ note.date.strftime('%Y-%m-%d') }}</small>
+            </div>
+            <h2><a class="article-title" href="{{ url_for('note', id=note.id) }}">{{ note.title }}</a></h2>
+            <p class="article-content">{{ note.content }}</p>
+          </div>
+        </article>
+    {% endfor %}
 
     {% endif %}
 {% endblock content %}

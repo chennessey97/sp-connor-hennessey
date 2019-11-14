@@ -46,8 +46,8 @@ p { margin: 0 0 10px 0; }
 
 .img
 { height:100%; width:auto; vertical-align:middle; }
-.img-logo
-{ width: 52px; height: 52px; }
+{ height:100%; width:auto; vertical-align:middle; }
+.img-logo { width: 58px; height: 58px; }
 .article-img { height: 65px; width: 65px; margin-right: 16px; }
 .account-img { height: 125px; width: 125px; margin-right: 20px; margin-bottom: 16px; }
 #logo
@@ -160,8 +160,6 @@ a.article-title:hover
 { color: #333; text-decoration: none; }
 .article-svg
 { width: 25px; height: 25px; vertical-align: middle; }
-.account-img
-{ height: 125px; width: 125px; margin-right: 20px; margin-bottom: 16px; }
 .account-heading
 { font-size: 2.5rem; }
 
