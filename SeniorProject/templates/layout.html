@@ -48,7 +48,7 @@
                     {% if current_user.is_authenticated %}
                         <a class="nav-item nav-link" style="height:40px; margin-top:9px;" href="{{ url_for('auth.logout') }}">Logout </a>
                         <a href="{{ url_for('main.profile') }}">
-                            <img class="rounded-circle img-logo navbar-nav nav-item nav-link" src="{{ current_user.image }}" alt="User Img">
+                            <img class="rounded-circle img-logo navbar-nav nav-item nav-link" src="/{{ current_user.image }}" alt="User Img">
                         </a>
                     {% endif %}
                     {% if not current_user.is_authenticated %}
