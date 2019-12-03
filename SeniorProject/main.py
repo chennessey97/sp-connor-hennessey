@@ -1,7 +1,7 @@
 import os
 from . import db
 from .models import User, FileInput, Transaction, Chart, Note
-from .forms import RegistrationForm, LoginForm, UpdateAccountForm, DataTable, NoteForm
+from .forms import RegistrationForm, LoginForm, UpdateAccountForm, DataTable, NoteForm, Filter
 from PIL import Image
 from flask_login import login_required, current_user
 from flask import Blueprint, render_template, redirect, url_for, request, flash, app
@@ -40,12 +40,29 @@ conn = create_connection(database)
 @main.route('/')  # Root/Home page
 @main.route("/home", methods=['GET', 'POST'])  # Root/Home page
 def home():
-    form = RegistrationForm()
+    notes = Note.query.all()
+    form = Filter()
     if form.validate_on_submit():
-        flash('Account created for {form.username.data}!', 'alert-success')
-        return redirect(url_for('dashboard'))
-    # notes = Note.query.all()
-    return render_template('home.html', title='Home', form=form) #, notes=notes)
+        f = form.filter.data
+        print(f)
+        if f == 'all_posts':
+            notes = Note.query.all()
+            flash('All Posts', 'alert-neutral')
+            return render_template('home.html', title='Home', form=form, notes=notes)
+        if f == 'my_posts':
+            notes = [x for x in notes if x.author == current_user.username]
+            flash('My Posts', 'alert-neutral')
+            return render_template('home.html', title='Home', form=form, notes=notes)
+        if f == 'suggestions':
+            notes = [x for x in notes if 'Dough Suggestion' in x.author]
+            flash('My Suggestions', 'alert-neutral')
+            return render_template('home.html', title='Home', form=form, notes=notes)
+        if f == 'other_posts':
+            notes = [x for x in notes if x.author != current_user.username]
+            flash('Other Posts', 'alert-neutral')
+            return render_template('home.html', title='Home', form=form, notes=notes)
+
+    return render_template('home.html', title='Home', notes=notes, form=form)
 
 
 @main.route("/about")
@@ -129,51 +146,44 @@ def data_upload():
 def dashboard():
     form = DataTable()
     userid = current_user.id
-    chart = None
-    generate_chart_pie(userid)
-    #generate_chart_bar(userid)
-    #generate_chart_bar_cat(userid)
-    #generate_chart_raw(userid)
-    #if request.method == 'POST' or request.method == 'GET':
-    if form.validate() == True:
-        if form.set_goal.data:
-            set_new_goal(form.set_goal.data)
-        if not has_data(userid, conn):
-            flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
-            return render_template('dashboard.html', title='Dashboard', form=form)
-        elif form.data_views.data:  # generate graphs form.data_views.validate(form)
-            option = request.form['id']    # form.data_views.data   # request.form['']
-            if option == 'data_view':
-                raw_path = generate_chart_raw(userid)
-                #chart =
-            if option == 'type_view':
-                #pie_path = generate_chart_pie(userid)
-                chart = generate_chart_pie(userid)
-            if option == 'all_spending_view':
-                bar_path = generate_chart_bar(userid)
-                #chart =
-            if option == 'all_spending_cat_view':
-                cat_bar_path = generate_chart_bar_cat(userid)
-                #chart =
-        if form.make_note.data:
-            quick_note(form.set_goal.data)
-        if form.clear_data.data:
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM transactions, charts, notes, input input WHERE userID =' + str(userid) + ';')
-            flash('All user financial information successfully removed.', category='alert-success')
-    chart = generate_chart_pie(userid)
-
-    return render_template('dashboard.html', title='Dashboard', form=form, chart=chart)
-
+    html = ''
+    if form.set_goal.data:
+        set_new_goal(form.set_goal.data)
+    if not has_data(userid, conn):
+        flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.',
+              category='alert-error')
+        return render_template('dashboard.html', title='Dashboard', form=form)
+    elif form.data_views.data:
+        option = form.data_views.data
+        if option == 'data_view':
+            html = generate_chart_raw2(userid)
+            x = generate_chart_raw(userid)
+        if option == 'type_view':
+            x = generate_chart_pie(userid)
+        if option == 'all_spending_view':
+            x = generate_chart_bar(userid)
+        if option == 'progress_view':
+            x = generate_chart_progress(userid)
+    if form.make_note.data:  # ********************************************************************************
+        quick_note(form.make_note.data)
+    if form.clear_data.data:  # ************************************************************************** test this
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM transactions, charts, notes, input input WHERE userID =' + str(userid) + ';')
+        flash('All user financial information successfully removed.', category='alert-success')
+    return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html)
 
 
 def generate_chart_raw(uid):
-    df = pd.read_sql(con=conn, sql='SELECT transID, date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
-    chart = df.style.applymap(color_negative_red)
-    chart.apply(highlight_max)
+    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
+    fig = go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'),
+                                   cells=dict(values=[df.date, df.description, df.category, df.amount], fill_color='lavender', align='left'))])
+    fig.show()
+    return fig
+
+def generate_chart_raw2(uid):
+    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
     html = df.to_html()
     return html
-
 
 def generate_chart_pie(uid):
     df = pd.read_sql(con=conn, sql="SELECT category, amount FROM transactions WHERE userID="+str(uid)+";")
@@ -185,51 +195,25 @@ def generate_chart_pie(uid):
     fig = go.Figure(data=[go.Pie(labels=c, values=a)])
     fig.show()
 
-    #chart = df.plot.pie(y='amount', figsize=(5, 5))  # kind='pie',index='category'
-    cid = uuid1().time_low
-    chart_name = "pie_chart_"+str(cid)+".png"
-    chart_path = "SeniorProject/static/charts/" + chart_name
-    #new_chart = Chart(chartID=cid, type='pie', name=chart_name, date=datetime.now(), path=chart_path, userID=current_user.id)
-    #db.session.add(new_chart)
-    #db.session.commit()
 
-    html = plotly.offline.plot(fig, chart_path, include_plotlyjs=False, output_type='div')
-    return html
-    #fig = chart.get_figure()
-    #fig.savefig(fname='SeniorProject/static/charts/'+chart_name)
-    #return "SeniorProject/static/charts/" + chart_name
-
-
-def generate_chart_bar(uid):  # returns path to .png file of chart
+def generate_chart_bar(uid):
     df = pd.read_sql(con=conn, sql="SELECT date, amount FROM transactions WHERE userID="+str(uid)+";")
     df['amount'] = df['amount'].abs()
-    chart = df.plot.bar(x='date', y='amount', rot=0)
-    cid = uuid1().time_low
-    chart_name = "bar_chart_"+str(cid)+".png"
-    chart_path = "SeniorProject/static/charts/" + chart_name
-    new_chart = Chart(chartID=cid, type='bar', name=chart_name, date=datetime.now(), path=chart_path, userID=current_user.id)
-    db.session.add(new_chart)
-    db.session.commit()
-    fig = chart.get_figure()
-    fig.savefig(fname='SeniorProject/static/charts/'+chart_name)
-    return "SeniorProject/static/charts/" + chart_name
+    df = df.groupby(['date']).sum(axis=0)
+    x = df.index.tolist()
+    y = df['amount'].tolist()
+    fig = go.Figure(data=[go.Bar(y=y, x=x)])
+    fig.show()
 
 
-def generate_chart_bar_cat(uid):  # returns path to .png file of chart
-    df = pd.read_sql(con=conn, sql="SELECT category, date, amount FROM transactions WHERE userID="+str(uid)+";", index_col='date')
+def generate_chart_progress(uid):  # line graph
+    df = pd.read_sql(con=conn, sql="SELECT date, amount FROM transactions WHERE userID=" + str(uid) + ";")
     df['amount'] = df['amount'].abs()
-    print(df)
-    ddff = pd.DataFrame({'amount':df['amount'], 'category':df['category']}, index=df['date'])
-    chart = ddff.plot.bar(rot=0, x='date')
-    cid = uuid1().time_low
-    chart_name = "cat_bar_chart_"+str(cid)+".png"
-    chart_path = "SeniorProject/static/charts/" + chart_name
-    new_chart = Chart(chartID=cid, type='bar', name=chart_name, date=datetime.now(), path=chart_path, userID=current_user.id)
-    db.session.add(new_chart)
-    db.session.commit()
-    fig = chart.get_figure()
-    fig.savefig('SeniorProject/static/charts/'+chart_name)
-    return "SeniorProject/static/charts/" + chart_name
+    df = df.groupby(['date']).sum(axis=0)
+    x = df.index.tolist()
+    y = df['amount'].tolist()
+    fig = go.Figure(data=[go.Scatter(y=y, x=x)])
+    fig.show()
 
 
 def get_user_trans(uid):
@@ -298,7 +282,7 @@ def highlight_max(s):
 def new_note():
     form = NoteForm()
     if form.validate_on_submit():
-        note = Note(title=form.title.data, content=form.content.data, author=current_user.username, userID=current_user.id, date=datetime.now(), id=uuid1().time_low)
+        note = Note(title=form.title.data, content=form.content.data, author=current_user.username, userID=current_user.id, date=datetime.now(), id=uuid1().time_low, img="/"+current_user.image)
         db.session.add(note)
         db.session.commit()
         flash('Your note has been created!', category='alert-success')

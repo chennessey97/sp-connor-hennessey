@@ -2,62 +2,106 @@
 {% block content %}
 
     <h1>User Dashboard </h1><br>
-    <!-- <p align="left" style="width:33%; margin:0;">
-                // insert description here //
-    </p><br> -->
-    {% if chart == None %}
-    {% else %}
-        <div class="row" id="'anniversary-container">
-            <div class="content-section">
-                <script src="/SeniorProject/templates/dashboard_chart.html"> </script>
+    {% if chart_html == "" %}
+        <div class="row" id="anniversary-container" style="padding:10px;  align-content:center;">
+            <div class="col-md-8"></div>
+            <div class="col-md-4">
+                <form method="POST" action="" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <fieldset class="form-group">
+                    <div class="column-centered content-section" style="float:right; height:100%; width:100%; margin-right:10px; color:#cbd5db; background-color:#7890a1;">
+                        <h3 style="color:#cbd5db">Update Info</h3>
+                        <p>Update and view your financial information, goals, and view your progress: </p>
+                        <ul class="list-group" style="background-color:#ffffff; color:#444444">
+                            <a class="list-group-item list-group-item-light" href="{{ url_for('main.data') }}">Upload New</a>
+                            <div class="form-group">
+                                <li class="list-group-item">
+                                    {{ form.set_goal.label(class="form-control-label") }}
+                                    <form action="" method="POST"> {{ form.set_goal }} </form>
+                                </li>
+
+                                <li class="list-group-item">Data Views
+                                    <form action="" method="POST"> {{ form.data_views }} </form>
+                                </li>
+
+                                <li class="list-group-item">
+                                    {{ form.make_note.label(class="form-control-label") }}
+                                    <form action="" method="POST"> {{ form.make_note }} </form>
+                                </li>
+
+                                <li class="list-group-item">
+                                    {{ form.clear_data.label(class="form-control-label") }}
+                                    <label>
+                                        <input type="checkbox" value="">
+                                    </label>
+                                </li>
+
+                                <li class="list-group-item">
+                                    {{ form.submit(class="btn btn-outline-info") }}
+                                </li>
+
+                            </div>
+                        </ul>
+                    </div>
+                </fieldset>
+            </form>
             </div>
         </div>
+    {% else %}
+        <div class="row" id="'anniversary-container" style="margin-right:0;">
+            <div class="content-section" id="first" style="margin-bottom:100px;">
+                {{ chart_html | safe }}
+            </div>
+            <form id="second" method="POST" action="" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <fieldset class="form-group">
+                    <div class="column-centered content-section" style="float:right; height:100%; width:100%; margin-right:10px; color:#cbd5db; background-color:#7890a1;">
+                        <h3 style="color:#cbd5db">Update Info</h3>
+                        <p>Update and view your financial information, goals, and view your progress: </p>
+                        <ul class="list-group" style="background-color:#ffffff">
+                            <a class="list-group-item list-group-item-light" href="{{ url_for('main.data') }}">Upload New</a>
+
+                            <div class="form-group"> <!-- (class="form-control-label list-group-item") -->
+                                    <!-- <li class="list-group-item list-group-item-light">Set Goals</li> -->
+                                {{ form.set_goal.label(class="form-control form-control-label") }}
+                                <input type="text" value="">
+                            </div>
+
+                            <div class="form-group" style="color:#495057;">
+                                <li class="list-group-item">Data Views</li>
+                                <form action="" method="POST"> {{ form.data_views.label }}{{ form.data_views }} </form>
+                            </div>
+
+                            <!-- <div class="form-group" style="color:#495057;">
+                                <li class="list-group-item">Data Views</li>
+                                <label for="data_view"></label><input type="radio" name="options" id="data_view">View Raw Data<br>
+                                <label for="type_view"></label><input type="radio" name="options" id="type_view">View Spending By Type<br>
+                                <label for="all_spending_view"></label><input type="radio" name="options" id="all_spending_view">View All Spending<br>
+                                <label for="all_spending_cat_view"></label><input type="radio" name="options" id="all_spending_cat_view">View All with Categories<br>
+                            </div> -->
+
+                            <div class="form-group list-group-item list-group-item-light">
+                                    <!-- <li class="list-group-item list-group-item-light">Post New Note</li> -->
+                                {{ form.make_note.label(class="form-control-label") }}
+                                <input type="text" value="">
+                            </div>
+
+                            <div class="form-group list-group-item list-group-item-light">
+                                    <!-- <li class="list-group-item list-group-item-light">Clear All Financial Data</li>
+                                    <input type="checkbox"> -->
+                                {{ form.clear_data.label(class="form-control-label") }}
+                                <input type="checkbox" value="">
+                            </div>
+
+                            <div class="form-group list-group-item list-group-item-light">
+                                {{ form.submit(class="btn btn-outline-info") }}
+                            </div>
+
+                        </ul>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
     {% endif %}
-    <div class="row" id="anniversary-container" style="padding:10px;  align-content:center;">
-        <form method="POST" action="" enctype="multipart/form-data">
-            {{ form.hidden_tag() }}
-            <fieldset class="form-group">
-                <div class="column-centered content-section" style="float:right; height:100%; width:25%; margin-right:10px; color:#cbd5db; background-color:#7890a1;">
-                    <h3 style="color:#cbd5db">Update Info</h3>
-                    <p>Update and view your financial information, goals, and view your progress: </p>
-                    <ul class="list-group" style="background-color:#ffffff">
-                        <a class="list-group-item list-group-item-light" href="{{ url_for('main.data') }}">Upload New</a>
-
-                        <div class="form-group"> <!-- (class="form-control-label list-group-item") -->
-                                <!-- <li class="list-group-item list-group-item-light">Set Goals</li> -->
-                            {{ form.set_goal.label(class="form-control form-control-label") }}
-                            <input type="text" value="">
-                        </div>
-
-                        <div class="form-group" style="color:#495057;">
-                            <li class="list-group-item">Data Views</li>
-                            <label for="data_view"></label><input type="radio" name="options" id="data_view">View Raw Data<br>
-                            <label for="type_view"></label><input type="radio" name="options" id="type_view">View Spending By Type<br>
-                            <label for="all_spending_view"></label><input type="radio" name="options" id="all_spending_view">View All Spending<br>
-                            <label for="all_spending_cat_view"></label><input type="radio" name="options" id="all_spending_cat_view">View All with Categories<br>
-                        </div>
-
-                        <div class="form-group list-group-item list-group-item-light">
-                                <!-- <li class="list-group-item list-group-item-light">Post New Note</li> -->
-                            {{ form.make_note.label(class="form-control-label") }}
-                            <input type="text" value="">
-                        </div>
-
-                        <div class="form-group list-group-item list-group-item-light">
-                                <!-- <li class="list-group-item list-group-item-light">Clear All Financial Data</li>
-                                <input type="checkbox"> -->
-                            {{ form.clear_data.label(class="form-control-label") }}
-                            <input type="checkbox" value="">
-                        </div>
-
-                        <div class="form-group list-group-item list-group-item-light">
-                            {{ form.submit(class="btn btn-outline-info") }}
-                        </div>
-
-                    </ul>
-                </div>
-            </fieldset>
-        </form>
-    </div>
 
 {% endblock content %}

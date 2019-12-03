@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, IntegerField, SelectField, RadioField, \
     TextAreaField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, InputRequired
 from flask_wtf.file import FileField, FileAllowed
 from flask_login import current_user
 from SeniorProject.models import User
@@ -45,11 +45,11 @@ class UpdateAccountForm(FlaskForm):
 class DataTable(FlaskForm):
     # upload_new = SubmitField('Upload New')
     set_goal = IntegerField('Set New Goal')
-    data_views = RadioField('View Data', choices=
+    data_views = SelectField('View Data', default='Select View', choices=
         [('data_view', 'View Raw Data'),
          ('type_view', 'View Spending By Type'),
-        ('all_spending_view', 'View All Spending'),
-         ('all_spending_cat_view', 'View All with Categories')])
+         ('all_spending_view', 'View All Spending'),
+         ('progress_view', 'View Goal Progress')])  # validators=[Required()])
     make_note = StringField('Add New Note')
     clear_data = BooleanField('Clear All Data')
     submit = SubmitField('Submit')
@@ -60,6 +60,15 @@ class NoteForm(FlaskForm):
     content = TextAreaField('Content', validators=[DataRequired()])
     submit = SubmitField('Post')
 
+
+class Filter(FlaskForm):
+    label = 'Filter Posts'
+    filter = SelectField('Filter Posts', default='all_posts', choices=
+            [('all_posts', 'All Posts'),
+             ('my_posts', 'My Posts'),
+             ('suggestions', 'Suggestions'),
+             ('other_posts', 'Other Posts')])
+    submit = SubmitField('Filter')
 
 
 

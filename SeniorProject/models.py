@@ -41,9 +41,10 @@ class Note(db.Model):
     __tablename__ = 'notes'
     id = db.Column(db.Integer(), primary_key=True, unique=True, nullable=False)
     title = db.Column(db.String(100), nullable=False, default='New Note ')
-    author = db.Column(db.String(), nullable=False, default='User')
+    author = db.Column(db.String(), nullable=False, default=User.username)
     date = db.Column(db.DateTime(), nullable=False)
-    content = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.String(120), nullable=False)
     userID = db.Column(db.Integer(), nullable=False)
+    img = db.Column(db.String(100), default=User.image)
 
 

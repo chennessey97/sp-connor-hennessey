@@ -43,9 +43,9 @@ p { margin: 0 0 10px 0; }
 
 .alert-error { background-color:#e59a9a; color: white; }
 .alert-success { background-color:#00cc00; color:white; }
+.alert-neutral { background-color: #5f788a; color:white; }
 
 .img
-{ height:100%; width:auto; vertical-align:middle; }
 { height:100%; width:auto; vertical-align:middle; }
 .img-logo { width: 58px; height: 58px; }
 .article-img { height: 65px; width: 65px; margin-right: 16px; }
@@ -85,7 +85,8 @@ p { margin: 0 0 10px 0; }
   margin-bottom: 20px;
   margin-left: 10px;
   margin-right: 10px;
-  height: 450px;
+  width:250px;
+  height: 400px;
   justify-content: center;
 }
 .content-forms
@@ -123,15 +124,28 @@ p { margin: 0 0 10px 0; }
    justify-content: left;
 }
 
-.row
-{
-  content: "";
-  display: table;
-  clear: both;
-  justify-content: center;
-  text-align: center;
-  margin: 0 0 0 0;
+table.dataframe, .dataframe th, .dataframe td {
+  border: none;
+  border-bottom: 1px solid #C8C8C8;
+  border-collapse: collapse;
+  text-align:left;
+  padding: 10px;
+  margin-bottom: 40px;
+  font-size: 0.9em;
 }
+
+#first {
+    width: 70%;
+    float: left;
+    justify-self:left;
+}
+#second {
+    width: 25%;
+    float: right;
+    justify-self:right;
+}
+
+
 
 .bg-steel
 { background-color: #5f788a; }
@@ -155,12 +169,20 @@ a.article-title:hover
 .article-img
 { height: 65px; width: 65px; margin-right: 16px; }
 .article-metadata
-{ padding-bottom: 1px; margin-bottom: 4px; border-bottom: 1px solid #e3e3e3 }
+{ padding-bottom: 1px; margin-bottom: 4px; border-bottom: 1px solid #e3e3e3; }
 .article-metadata a:hover
 { color: #333; text-decoration: none; }
 .article-svg
 { width: 25px; height: 25px; vertical-align: middle; }
 .account-heading
 { font-size: 2.5rem; }
+.article-section
+{
+  background: #ffffff;
+  padding: 10px 20px;
+  border: 1px solid #dddddd;
+  border-radius: 3px;
+  margin-bottom: 20px;
+}
 
 
