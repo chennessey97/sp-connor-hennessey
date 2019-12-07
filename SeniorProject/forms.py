@@ -43,13 +43,13 @@ class UpdateAccountForm(FlaskForm):
 
 
 class DataTable(FlaskForm):
-    # upload_new = SubmitField('Upload New')
+    label = 'View Data'
     set_goal = IntegerField('Set New Goal')
     data_views = SelectField('View Data', default='Select View', choices=
-        [('data_view', 'View Raw Data'),
-         ('type_view', 'View Spending By Type'),
-         ('all_spending_view', 'View All Spending'),
-         ('progress_view', 'View Goal Progress')])  # validators=[Required()])
+                    [('data_view', 'View Raw Table'),
+                     ('type_view', 'View Spending By Type'),
+                     ('all_spending_view', 'View All Spending'),
+                     ('progress_view', 'View Goal Progress')])
     make_note = StringField('Add New Note')
     clear_data = BooleanField('Clear All Data')
     submit = SubmitField('Submit')
@@ -64,12 +64,8 @@ class NoteForm(FlaskForm):
 class Filter(FlaskForm):
     label = 'Filter Posts'
     filter = SelectField('Filter Posts', default='all_posts', choices=
-            [('all_posts', 'All Posts'),
-             ('my_posts', 'My Posts'),
-             ('suggestions', 'Suggestions'),
-             ('other_posts', 'Other Posts')])
+    [('all_posts', 'All Posts'),
+     ('my_posts', 'My Posts'),
+     ('suggestions', 'Suggestions'),
+     ('other_posts', 'Other Posts')])
     submit = SubmitField('Filter')
-
-
-
-

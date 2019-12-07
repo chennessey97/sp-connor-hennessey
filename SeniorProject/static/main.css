@@ -12,6 +12,8 @@ h1, h2, h3, h4, h5, h6
 h1 { float:left; padding-top: 10px; padding-bottom: 20px; margin: 0; }
 p { margin: 0 0 10px 0; }
 
+label filter input { margin-bottom: 10px; }
+
 .div1
 {
   position: absolute;
@@ -44,6 +46,7 @@ p { margin: 0 0 10px 0; }
 .alert-error { background-color:#e59a9a; color: white; }
 .alert-success { background-color:#00cc00; color:white; }
 .alert-neutral { background-color: #5f788a; color:white; }
+.alert-banner { background-color: #5f788a; color:white; font-size: 40px; }
 
 .img
 { height:100%; width:auto; vertical-align:middle; }

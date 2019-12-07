@@ -44,7 +44,6 @@ def home():
     form = Filter()
     if form.validate_on_submit():
         f = form.filter.data
-        print(f)
         if f == 'all_posts':
             notes = Note.query.all()
             flash('All Posts', 'alert-neutral')
@@ -146,17 +145,18 @@ def data_upload():
 def dashboard():
     form = DataTable()
     userid = current_user.id
-    html = ''
+    html = generate_chart_table(userid)
     if form.set_goal.data:
         set_new_goal(form.set_goal.data)
-    if not has_data(userid, conn):
-        flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.',
-              category='alert-error')
-        return render_template('dashboard.html', title='Dashboard', form=form)
-    elif form.data_views.data:
+    if form.validate_on_submit():
+        #if not has_data(userid, conn):
+        #    flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
+        #    return render_template('dashboard.html', title='Dashboard', form=form)
+        #else:
         option = form.data_views.data
+        print(option)
         if option == 'data_view':
-            html = generate_chart_raw2(userid)
+
             x = generate_chart_raw(userid)
         if option == 'type_view':
             x = generate_chart_pie(userid)
@@ -164,12 +164,13 @@ def dashboard():
             x = generate_chart_bar(userid)
         if option == 'progress_view':
             x = generate_chart_progress(userid)
-    if form.make_note.data:  # ********************************************************************************
-        quick_note(form.make_note.data)
-    if form.clear_data.data:  # ************************************************************************** test this
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM transactions, charts, notes, input input WHERE userID =' + str(userid) + ';')
-        flash('All user financial information successfully removed.', category='alert-success')
+
+        if form.make_note.data:  # ********************************************************************************
+            quick_note(form.make_note.data)
+        if form.clear_data.data:  # ************************************************************************** test this
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM transactions, charts, notes, input input WHERE userID =' + str(userid) + ';')
+            flash('All user financial information successfully removed.', category='alert-success')
     return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html)
 
 
@@ -180,7 +181,7 @@ def generate_chart_raw(uid):
     fig.show()
     return fig
 
-def generate_chart_raw2(uid):
+def generate_chart_table(uid):
     df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
     html = df.to_html()
     return html

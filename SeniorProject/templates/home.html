@@ -20,8 +20,14 @@
     {% if current_user.is_authenticated %}
         <div class="row">
             <div class="col-md-8">
-                <h1 class="title" style="margin-top:0;"> Welcome back to Dough, {{ current_user.username }}! </h1>
-                <br><br><br><br><br>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    {% else %}
+                        <h1 class="title" style="margin-top:0;"> Welcome back to Dough, {{ current_user.username }}! </h1>
+                        <br><br><br><br><br>
+                    {% endif %}
+                {% endwith %}
+
                 {% for note in notes %}
                   <article class="media content-section" style="width: 90%; float:left;">
                     <img class="rounded-circle article-img" src="{{ note.img }}" alt="User Img" style="float:left; vertical-align:center;">
@@ -50,8 +56,12 @@
                     <li class="list-group-item list-group-item-light">
                         <form method="POST" action="{{ url_for('main.home') }}" enctype="multipart/form-data">
                             <fieldset class="form-group">
-                                <form action="" method="POST"> {{ form.label }}{{ form.filter }}</form>
-                                {{ form.submit(class="btn btn-outline-info") }} {{ form.hidden_tag() }}
+                                <form action="" method="POST">
+                                    {{ form.label }}
+                                    {{ form.filter }}
+                                </form>
+                                {{ form.submit(class="btn btn-outline-info") }}
+                                {{ form.hidden_tag() }}
                             </fieldset>
 
                         </form>
