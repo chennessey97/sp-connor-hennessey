@@ -5,6 +5,7 @@ body
   color: #333333;
   margin-top: 5rem;
   text-align: center;
+  margin-bottom: 100px;
 }
 
 h1, h2, h3, h4, h5, h6
@@ -98,11 +99,12 @@ label filter input { margin-bottom: 10px; }
   align-content: center;
   margin-left: 30px;
 }
+.form-check { text-align: center; float: right; clear: both; overflow: hidden; }
 #anniversary-container
 {
   width: 100%;
   height: auto;
-  margin:0%;
+  margin:0;
   justify-content:center;
 }
 .column-centered

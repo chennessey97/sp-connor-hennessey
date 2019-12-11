@@ -7,21 +7,23 @@ from flask_login import login_required, current_user
 from flask import Blueprint, render_template, redirect, url_for, request, flash, app
 from uuid import uuid1
 from flask_login import login_user, logout_user, login_required
+from flask_bcrypt import Bcrypt
 import pandas as pd
 import plotly
-import plotly.graph_objects as go
 from plotly import tools as tls
+import plotly.graph_objects as go
 import sqlite3
 from datetime import datetime
-import matplotlib.pyplot as plt
-import numpy as np
-import plotly.io as pio
-import plotly.express as px
-from matplotlib.artist import setp
-from jinja2 import Template
+# import matplotlib.pyplot as plt   import numpy as np   import plotly.io as pio   import plotly.express as px   from matplotlib.artist import setp   from jinja2 import Template
 # import imgkit   from werkzeug.security import generate_password_hash, check_password_hash   import urllib.request   from werkzeug.utils import secure_filename   from pandas import ExcelWriter, ExcelFile   import secrets
 
 main = Blueprint('main', __name__)
+
+# Global Variables (use keyword 'global' when referencing/modifying):
+global current_total, last_total, all_total
+global goal_percentage, goal_amount
+global current_cat_percentage, current_cat_amount, last_cat_percentage, last_cat_amount
+global active_goal
 
 # conn = sqlite3.connect('C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite')
 database = 'C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite'
@@ -112,12 +114,22 @@ def allowed_file(filename):
 @main.route("/data", methods=['POST'])
 @login_required
 def data_upload():
+    global last_total, current_total, all_total, last_cat_amount, last_cat_percentage, current_cat_amount, current_cat_percentage, active_goal
     if request.method == 'POST':
         file = request.files['file']
         if file.filename == '':
             flash('No file selected for uploading', category='alert-error')
             return render_template('data.html')
         if file:
+            if has_data(current_user.id, conn):
+                last_total = current_total
+                last_cat_amount = current_cat_amount
+                last_cat_percentage = current_cat_percentage
+                Had_Data = True
+            else:
+                Had_Data = False
+                active_goal = False
+
             filename = file.filename
             file.save('SeniorProject/static/uploads/'+filename)
 
@@ -126,18 +138,32 @@ def data_upload():
             db.session.add(new_input)
             db.session.commit()
 
-            cols = [1, 2, 4, 6]
+            cols = [1, 4, 6, 11]
             df = pd.read_excel('SeniorProject/static/uploads/'+filename, usecols=cols)
             df.update('"' + df[['Date']].astype(str) + '"')
-            for i, row in df.iterrows():
-                r = Transaction(transID=uuid1().time_low, date=row['Date'], description=row['Original Description'], category=row['Category'], amount=row['Amount'], userID=current_user.id)
+            upload_id = uuid1().time_low
+            for i, row in df.iterrows():  # ********************************Flask-Bcrypt***********************
+                r = Transaction(transID=uuid1().time_low, date=row['Date'], description=row['Simple Description'], category=row['Category'], amount=row['Amount'], userID=current_user.id, uploadID=upload_id)
                 db.session.add(r)
                 db.session.commit()
             flash("File Successfully Uploaded!", category='alert-success')
+
+            if Had_Data:
+                update_totals(current_user.id)
+            else:
+                last_total = 0
+                current_total = get_current_total(current_user.id, upload_id)
+                all_total = get_all_total(current_user.id)
+
             return render_template('data.html')
         else:
             flash('Allowed file type is .xlsx')
             return render_template('data.html')
+
+
+def update_totals(uid):
+    global last_total, current_total, all_total, last_cat_amount, last_cat_percentage, current_cat_amount, current_cat_percentage
+
 
 
 @main.route("/dashboard", methods=['GET', 'POST'])
@@ -145,18 +171,19 @@ def data_upload():
 def dashboard():
     form = DataTable()
     userid = current_user.id
-    html = generate_chart_table(userid)
+    if not has_data(userid, conn):
+        flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
+        html = '<p>No Data Available - Upload Transactions on Data Page</p>'
+        totals = ''
+    else:
+        html = generate_chart_table(userid)
+        totals = generate_totals_table(userid)
+    button = form.clear_data.data
     if form.set_goal.data:
         set_new_goal(form.set_goal.data)
     if form.validate_on_submit():
-        #if not has_data(userid, conn):
-        #    flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
-        #    return render_template('dashboard.html', title='Dashboard', form=form)
-        #else:
         option = form.data_views.data
-        print(option)
         if option == 'data_view':
-
             x = generate_chart_raw(userid)
         if option == 'type_view':
             x = generate_chart_pie(userid)
@@ -165,13 +192,14 @@ def dashboard():
         if option == 'progress_view':
             x = generate_chart_progress(userid)
 
-        if form.make_note.data:  # ********************************************************************************
-            quick_note(form.make_note.data)
-        if form.clear_data.data:  # ************************************************************************** test this
+        clear = True if request.form.get('clear_data') else False
+        if clear:
             cursor = conn.cursor()
-            cursor.execute('DELETE FROM transactions, charts, notes, input input WHERE userID =' + str(userid) + ';')
+            cursor.execute('DELETE FROM transactions WHERE userID =' + str(userid) + ';')
+            conn.commit()
             flash('All user financial information successfully removed.', category='alert-success')
-    return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html)
+
+    return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html, totals_html=totals)
 
 
 def generate_chart_raw(uid):
@@ -186,9 +214,13 @@ def generate_chart_table(uid):
     html = df.to_html()
     return html
 
+def generate_totals_table(uid):
+    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
+    html = df.to_html()
+    return html
+
 def generate_chart_pie(uid):
-    df = pd.read_sql(con=conn, sql="SELECT category, amount FROM transactions WHERE userID="+str(uid)+";")
-    #df = df.set_index('category', drop=False).groupby((['category', 'amount'])).sum(axis=0)
+    df = pd.read_sql(con=conn, sql="SELECT category, amount FROM transactions WHERE userID="+str(uid)+";")    #df = df.set_index('category', drop=False).groupby((['category', 'amount'])).sum(axis=0)
     df = df.groupby(['category']).sum(axis=0)
     df['amount'] = df['amount'].abs()
     a = df['amount'].tolist()
@@ -242,8 +274,10 @@ def get_total_trans(uid, total=0):
 
 def has_data(uid, conn):
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM transactions WHERE userID = '+str(uid)+';')
-    if cursor.rowcount == 0:
+    #count = cursor.execute("SELECT COUNT(*) FROM transactions WHERE userID ="+str(uid)+";")
+    cursor.execute("SELECT * FROM transactions WHERE userID =" + str(uid) + ";")
+    data = cursor.fetchone()
+    if data is None:
         cursor.close()
         return False
     else:
@@ -252,7 +286,21 @@ def has_data(uid, conn):
 
 
 def set_new_goal(new_goal):
-    new_goal_message = "I am switching my current goal from " + current_user.goal + " to " + new_goal + "!"
+    global active_goal
+    if active_goal:
+        new_goal_message = "I am switching my current goal from " + current_user.goal + " to " + new_goal + "!"
+        goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
+        db.session.add(goal_note)
+        db.session.commit()
+        current_user.goal = new_goal
+    else:
+        new_goal_message = "My goal is to reduce my spending by " + new_goal + "!"  # *********************************
+        goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
+        db.session.add(goal_note)
+        db.session.commit()
+        current_user.goal = new_goal
+        active_goal = True
+
     goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
     db.session.add(goal_note)
     db.session.commit()

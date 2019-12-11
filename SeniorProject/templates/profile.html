@@ -3,12 +3,12 @@
 
     <h1>User Profile Page</h1>
 
-    <div class="row" id="anniversary-container" style="padding:10px;">
+    <div class="row" id="anniversary-container" style="padding:10px; float:left;">
         <!--<div class="col-4 column-centered" style="width:25%; margin-right:10px;"> </div>
        <div class="col-4 column-centered" style="width:50%; margin-right:10px;"> </div> -->
 
-        <div class="column" style="width:50%; float:left;">
-            <div class="content-section" style="width:100%;">
+        <div class="col-md-6" style="width:50%; float:left;">
+            <div class="content-section" style="width:100%; float:left;">
                 <div class="media">
                     <img class="rounded-circle account-img" src="{{ current_user.image }}" alt="User Pic">
                     <div class="media-body">
@@ -68,11 +68,21 @@
                 <h3 style="color:#cbd5db">Update Info</h3>
                 <p>Update and view your financial information, goals, and progress:
                 <ul class="list-group " style="background-color:#ffffff">
-                    <li class="list-group-item list-group-item-light">Upload New</li>
-                    <li class="list-group-item list-group-item-light">Set Goals</li>
-                    <li class="list-group-item list-group-item-light">Track Progress</li>
-                    <li class="list-group-item list-group-item-light">Calendar View</li>
-                    <li class="list-group-item list-group-item-light">Data View</li>
+                    <li class="list-group-item list-group-item-light">
+                        <a class="list-group-item list-group-item-light" href="{{ url_for('main.data') }}">Upload New</a>
+                    </li>
+                    <li class="list-group-item list-group-item-light">
+                        <a class="list-group-item list-group-item-light" href="{{ url_for('main.dashboard') }}">Track Progress</a>
+                    </li>
+                    <li class="list-group-item list-group-item-light">
+                        <a class="list-group-item list-group-item-light" href="{{ url_for('main.home') }}">View Notes</a>
+                    </li>
+                    <li class="list-group-item list-group-item-light">
+                        <a class="list-group-item list-group-item-light" href="{{ url_for('main.new_note') }}">Post New Note</a>
+                    </li>
+                    <li class="list-group-item list-group-item-light">
+                        <a class="list-group-item list-group-item-light" href="{{ url_for('auth.logout') }}">Logout</a>
+                    </li>
                 </ul>
                 </p>
             </div>

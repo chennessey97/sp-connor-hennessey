@@ -20,6 +20,7 @@ class Transaction(db.Model):
     category = db.Column()
     amount = db.Column()
     userID = db.Column()
+    uploadID = db.Column()
 
 class FileInput(db.Model):
     __tablename__ = 'input'

@@ -46,11 +46,11 @@ class DataTable(FlaskForm):
     label = 'View Data'
     set_goal = IntegerField('Set New Goal')
     data_views = SelectField('View Data', default='Select View', choices=
-                    [('data_view', 'View Raw Table'),
+                    [('none', 'Select View'),
+                     ('data_view', 'View Raw Table'),
                      ('type_view', 'View Spending By Type'),
                      ('all_spending_view', 'View All Spending'),
                      ('progress_view', 'View Goal Progress')])
-    make_note = StringField('Add New Note')
     clear_data = BooleanField('Clear All Data')
     submit = SubmitField('Submit')
 
