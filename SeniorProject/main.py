@@ -186,12 +186,13 @@ def new_totals(uid, upload_id):
     last_total = 0
     last_upload = 0
     last_cats = []
+    current_cats = []
 
     df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID=' + str(uid) + ';')
     current_total = "{:.2f}".format(df['amount'].sum())
     all_total = current_total
     current_upload = upload_id
-    current_cats = []
+
     df = df.groupby(['category']).sum(axis=0)
     a = df['amount'].abs().tolist()
     c = df.index.tolist()
@@ -220,8 +221,24 @@ def update_totals(uid, upload_id):
     current_upload = get_nums(str(uid), 'current_upload')
     last_upload = get_nums(str(uid), 'last_upload')
 
-    current_cats = []
-    #last_cats = current_cats
+    if current_cats is None:
+        current_cats = []
+        df = pd.read_sql(con=conn,
+                         sql='SELECT date, description, category, amount FROM transactions WHERE userID=' + str(
+                             uid) + ';')
+        df = df.groupby(['category']).sum(axis=0)
+        a = df['amount'].abs().tolist()
+        c = df.index.tolist()
+        n = 0
+        for x in c:
+            cat = x
+            amount = "{:.2f}".format(a[n])
+            percentage = '{0:.2f}%'.format((Decimal(amount) / Decimal(current_total) * 100))
+            current = (cat, amount, percentage)
+            current_cats.append(current)
+            n += 1
+
+    last_cats = current_cats
 
     df = pd.read_sql(con=conn, sql='SELECT category, amount FROM transactions '
                                    'WHERE userID=' + str(uid) + ' AND uploadID=' + str(upload_id) + ';')
@@ -292,11 +309,12 @@ def dashboard():
         html = generate_chart_table(userid)
         #totals = generate_totals_table(userid)
 
-    if 'submit' in request.form and form1.validate() and has_data(userid, conn):
+    if 'submit' in request.form  and has_data(userid, conn):
         if str(form1.set_goal.data) == str(0):
             print("new goal = 0")
         else:
             new_goal = form1.set_goal.data
+            print(new_goal)
             set_new_goal(new_goal)
 
     if 'submit' in request.form and has_data(userid, conn):
@@ -422,9 +440,9 @@ def set_new_goal(new_goal):
     goal = get_nums(current_user.id, thing='goal')
     #print("goal = " + str(goal))
     #print("new goal = " + str(new_goal))
-
     if goal == 0 and new_goal != 0:
-        new_goal_message = "My goal is to reduce my spending by " + new_goal + "!"  # *********************************
+        new_goal = new_goal * 100
+        new_goal_message = "My goal is to reduce my spending by " + str(new_goal) + "%!"  # *********************************
         goal_note = Note(id=uuid1().time_low, title="New Goal!", author=current_user.username,
                          date=datetime.now(), content=new_goal_message, userID=current_user.id, img=current_user.image)
         db.session.add(goal_note)
@@ -434,7 +452,9 @@ def set_new_goal(new_goal):
         conn.commit()
         flash('New Goal Set! Good Luck!', category='alert-success')
     elif goal != 0 and new_goal != 0:
-        new_goal_message = "I am switching my current goal from " + str(goal) + " to " + str(new_goal) + "!"
+        new_goal = Decimal(new_goal) * 100
+        goal = Decimal(goal) * 100
+        new_goal_message = "I am switching my current goal from " + str(goal) + "% to " + str(new_goal) + "% !"
         goal_note = Note(id=uuid1().time_low, title="New Goal!", author=current_user.username,
                          date=datetime.now(), content=new_goal_message, userID=current_user.id, img=current_user.image)
         db.session.add(goal_note)
@@ -444,7 +464,7 @@ def set_new_goal(new_goal):
         conn.commit()
         flash('Goal Updated! Good Luck!', category='alert-success')
     elif goal != 0 and new_goal == 0:
-        conn.execute("UPDATE nums SET goal=" + str(new_goal) + " WHERE id=" + str(current_user.id) + ";")
+        conn.execute("UPDATE nums SET goal=" + str(0) + " WHERE id=" + str(current_user.id) + ";")
         flash("Goal Removed! Don't give up that easily!", category='alert-success')
     else:
         print("New Goal Failed To Update")
@@ -455,23 +475,23 @@ def color_negative_red(val):
         color = 'red' if val < 0 else 'black'
         return 'color: %s' % color
 
-def highlight_max(s):
-    is_max = s == s.min()
-    return ['background-color: yellow' if v else '' for v in is_max]
-
 
 @main.route("/note/new", methods=['GET', 'POST'])
 @login_required
 def new_note():
     form = NoteForm()
     if form.validate_on_submit():
-        type = form.chart.data
-
         if str(form.chart.data) == '<null>':
             attachment = '<null>'
         else:
             attachment = str(form.chart.data)
-        print(attachment)
+            if attachment.index('data_view'):
+                attachment = 'data_view'
+            elif attachment.index('type_view'):
+                attachment = 'type_view'
+            elif attachment.index('all_spending_view'):
+                attachment = 'all_spending_view'
+
         note = Note(title=form.title.data, content=form.content.data, author=current_user.username, attachment=attachment,
                     userID=current_user.id, date=datetime.now(), id=uuid1().time_low, img="/"+current_user.image)
         db.session.add(note)
@@ -495,17 +515,17 @@ def update_note(id):
         os.abort(403)
     form = NoteForm()
     if form.validate_on_submit():
-        if form.chart.data is not None:
-            attachment = request.form.get('data_view')
+        if str(form.chart.data) == '<null>':
+            attachment = '<null>'
         else:
-            if request.form.get('data_view'):
+            attachment = str(form.chart.data)
+            print(attachment)
+            if attachment.index('data_view'):
                 attachment = 'data_view'
-            if request.form.get('type_view'):
+            elif attachment.index('type_view'):
                 attachment = 'type_view'
-            if request.form.get('all_spending_view'):
+            elif attachment.index('all_spending_view'):
                 attachment = 'all_spending_view'
-            else:
-                attachment = None
         note.attachment = attachment
         note.title = form.title.data
         note.content = form.content.data

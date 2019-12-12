@@ -17,6 +17,12 @@
       <h2 class="article-title">{{ note.title }}</h2>
       <p class="article-content">{{ note.content }}</p>
     </div>
+    {% if note.attachment %}
+        <a class="text-muted" style="float:right; height: 24px;" href="{{ url_for('main.note_attachment', chart=note.attachment, uid=note.userID) }}">
+            <button type="button" class="btn btn-secondary btn-sm mt-1 mb-1" href="{{ url_for('main.note_attachment', chart=note.attachment, uid=note.userID) }}">Click Me!</button>
+        </a>
+    {% else %}
+    {% endif %}
   </article>
   <!-- Modal -->
   <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">

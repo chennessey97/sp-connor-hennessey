@@ -31,14 +31,18 @@
                     {{ form.content(class="form-control form-control-lg") }}
                 {% endif %}
             </div>
-            <div class="form-group">
-                <p style="align-content: center;"> Share Your Progress by Attaching a Chart: </p>
-                {{ form.chart }}
-            </div>
+
+            <form method="POST" action="{{ url_for('main.home') }}" enctype="multipart/form-data">
+                <fieldset class="form-group">
+                    <form action="" method="POST">
+                        <p style="align-content: center;"> Share Your Progress by Attaching a Chart: </p>
+                        {{ form.chart }}
+                    </form>
+                    {{ form.submit(class="btn btn-outline-info") }}
+                    {{ form.hidden_tag() }}
+                </fieldset>
+            </form>
         </fieldset>
-        <div class="form-group">
-            {{ form.submit(class="btn btn-outline-info") }}
-        </div>
     </form>
 </div>
 {% endblock content %}
