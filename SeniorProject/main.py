@@ -1,6 +1,6 @@
 import os
 from . import db
-from .models import User, FileInput, Transaction, Chart, Note
+from .models import User, FileInput, Transaction, Chart, Note, Nums
 from .forms import RegistrationForm, LoginForm, UpdateAccountForm, DataTable, NoteForm, Filter
 from PIL import Image
 from flask_login import login_required, current_user
@@ -14,6 +14,7 @@ from plotly import tools as tls
 import plotly.graph_objects as go
 import sqlite3
 from datetime import datetime
+from decimal import Decimal
 # import matplotlib.pyplot as plt   import numpy as np   import plotly.io as pio   import plotly.express as px   from matplotlib.artist import setp   from jinja2 import Template
 # import imgkit   from werkzeug.security import generate_password_hash, check_password_hash   import urllib.request   from werkzeug.utils import secure_filename   from pandas import ExcelWriter, ExcelFile   import secrets
 
@@ -22,7 +23,7 @@ main = Blueprint('main', __name__)
 # Global Variables (use keyword 'global' when referencing/modifying):
 global current_total, last_total, all_total
 global goal_percentage, goal_amount
-global current_cat_percentage, current_cat_amount, last_cat_percentage, last_cat_amount
+global current_cats, last_cats
 global active_goal
 
 # conn = sqlite3.connect('C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite')
@@ -114,7 +115,7 @@ def allowed_file(filename):
 @main.route("/data", methods=['POST'])
 @login_required
 def data_upload():
-    global last_total, current_total, all_total, last_cat_amount, last_cat_percentage, current_cat_amount, current_cat_percentage, active_goal
+    global last_total, current_total, all_total, current_cats, last_cats, active_goal
     if request.method == 'POST':
         file = request.files['file']
         if file.filename == '':
@@ -122,9 +123,8 @@ def data_upload():
             return render_template('data.html')
         if file:
             if has_data(current_user.id, conn):
-                last_total = current_total
-                last_cat_amount = current_cat_amount
-                last_cat_percentage = current_cat_percentage
+                #last_total = current_total
+                #last_cats = current_cats
                 Had_Data = True
             else:
                 Had_Data = False
@@ -132,12 +132,10 @@ def data_upload():
 
             filename = file.filename
             file.save('SeniorProject/static/uploads/'+filename)
-
             date = datetime.now()
             new_input = FileInput(id=uuid1().time_low, userID=current_user.id, name=filename, date=date)
             db.session.add(new_input)
             db.session.commit()
-
             cols = [1, 4, 6, 11]
             df = pd.read_excel('SeniorProject/static/uploads/'+filename, usecols=cols)
             df.update('"' + df[['Date']].astype(str) + '"')
@@ -149,11 +147,9 @@ def data_upload():
             flash("File Successfully Uploaded!", category='alert-success')
 
             if Had_Data:
-                update_totals(current_user.id)
+                update_totals(current_user.id, upload_id)
             else:
-                last_total = 0
-                current_total = get_current_total(current_user.id, upload_id)
-                all_total = get_all_total(current_user.id)
+                new_totals(current_user.id)
 
             return render_template('data.html')
         else:
@@ -161,9 +157,85 @@ def data_upload():
             return render_template('data.html')
 
 
-def update_totals(uid):
-    global last_total, current_total, all_total, last_cat_amount, last_cat_percentage, current_cat_amount, current_cat_percentage
+def update_totals(uid, upload_id):
+    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    last_total = get_nums(str(uid), 'last_total')
+    current_total = get_nums(str(uid), 'current_total')
+    all_total = get_nums(str(uid), 'all_total')
+    active_goal = bool(get_nums(str(uid), 'active_goal'))
 
+    df = pd.read_sql(con=conn, sql='SELECT category, amount FROM transactions '
+                                   'WHERE userID=' + str(uid) + ' AND uploadID=' + str(upload_id) + ';')
+    last_total = current_total  # ********************************************************************************
+    current_total = df['amount'].sum()
+    all_total = all_total + current_total
+
+    conn.execute("UPDATE nums SET last_total=" + str(last_total) + ", current_total=" + str(current_total) +
+                 ", all_total=" + str(all_total) + ", active_goal=" + str(active_goal) + " WHERE userID=" + str(uid) + ";")
+    conn.commit()
+
+    current_cats = []
+    df = df.groupby(['category']).sum(axis=0)   # df['amount'] = df['amount'].abs()
+    a = df['amount'].tolist()
+    c = df.index.tolist()
+    n = 0
+    for x in c:
+        cat = x
+        amount = a[n]
+        percentage = '{0:.2f}%'.format((amount / current_total * 100))
+        current = (cat, amount, percentage)
+        current_cats.append(current)
+        n += 1
+
+    print_nums()
+
+
+def new_totals(uid):
+    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    last_total = 0
+    last_cats = []
+    active_goal = False
+    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID=' + str(uid) + ';')
+    current_total = "{:.2f}".format(df['amount'].sum())
+    all_total = current_total
+
+    current_cats = []
+    df = df.groupby(['category']).sum(axis=0)
+    a = df['amount'].abs().tolist()
+    c = df.index.tolist()
+    n = 0
+    for x in c:
+        cat = x
+        amount = "{:.2f}".format(a[n])
+        percentage = '{0:.2f}%'.format((Decimal(amount) / Decimal(current_total) * 100))
+        current = (cat, amount, percentage)
+        current_cats.append(current)
+        n += 1
+
+    new_nums = Nums(userID=current_user.id, last_total=last_total, current_total=current_total, all_total=all_total, active_goal=active_goal)
+    db.session.add(new_nums)
+    db.session.commit()
+    print_nums()
+
+
+def print_nums():
+    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    print('Last Total: ' + str(last_total))
+    print('Current Total: ' + str(current_total))
+    print('All Total: ' + str(all_total))
+    print('Active Goal: ' + str(active_goal))
+    #for x in current_cats:
+    #    print("Current Cats: " + str(x))
+    #for x in last_cats:
+    #    print("Last Cats: " + str(x))
+
+
+def get_nums(uid, thing):
+    cursor = conn.cursor()
+    cursor.execute("SELECT " + thing + " FROM nums WHERE userID=" + uid + ";")
+    conn.commit()
+    r = cursor.fetchone()
+    return r[0]
 
 
 @main.route("/dashboard", methods=['GET', 'POST'])
@@ -196,8 +268,10 @@ def dashboard():
         if clear:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM transactions WHERE userID =' + str(userid) + ';')
+            cursor.execute('DELETE FROM nums WHERE userID =' + str(userid) + ';')
             conn.commit()
             flash('All user financial information successfully removed.', category='alert-success')
+            html = '<p>No Data Available - Upload Transactions on Data Page</p>'
 
     return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html, totals_html=totals)
 
@@ -300,12 +374,11 @@ def set_new_goal(new_goal):
         db.session.commit()
         current_user.goal = new_goal
         active_goal = True
-
-    goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
-    db.session.add(goal_note)
-    db.session.commit()
-    current_user.goal = new_goal
-    flash(new_goal_message, category='alert-success')
+   # goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
+   # db.session.add(goal_note)
+   # db.session.commit()
+   # current_user.goal = new_goal
+   # flash(new_goal_message, category='alert-success')
 
 
 def quick_note(note_content):

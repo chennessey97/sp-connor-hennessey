@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from . import db
 
+
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer(), primary_key=True)  # primary keys are required by SQLAlchemy
@@ -12,6 +13,7 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
+
 class Transaction(db.Model):
     __tablename__ = 'transactions'
     transID = db.Column(primary_key=True)
@@ -22,12 +24,14 @@ class Transaction(db.Model):
     userID = db.Column()
     uploadID = db.Column()
 
+
 class FileInput(db.Model):
     __tablename__ = 'input'
     id = db.Column(db.Integer(), unique=True, nullable=False)
     userID = db.Column(db.String(100), primary_key=True)
     name = db.Column(db.String(100))  # file name?
     date = db.Column(db.DateTime())
+
 
 class Chart(db.Model):
     __tablename__ = 'charts'
@@ -38,6 +42,7 @@ class Chart(db.Model):
     path = db.Column(db.String(100))
     userID = db.Column(db.String(100), nullable=False)
 
+
 class Note(db.Model):
     __tablename__ = 'notes'
     id = db.Column(db.Integer(), primary_key=True, unique=True, nullable=False)
@@ -47,5 +52,16 @@ class Note(db.Model):
     content = db.Column(db.String(120), nullable=False)
     userID = db.Column(db.Integer(), nullable=False)
     img = db.Column(db.String(100), default=User.image)
+
+
+class Nums(db.Model):
+    __tablename__ = 'nums'
+    userID = db.Column(db.Integer(), primary_key=True, unique=True, nullable=False)
+    last_total = db.Column()
+    current_total = db.Column()
+    all_total = db.Column()
+    active_goal = db.Column()
+    #current_cats = db.Column()
+    #last_cats = db.Column()
 
 
