@@ -10,8 +10,8 @@ from flask_login import login_user, logout_user, login_required
 from flask_bcrypt import Bcrypt
 import pandas as pd
 import plotly
-from plotly import tools as tls
 import plotly.graph_objects as go
+import plotly.express as px
 import sqlite3
 from datetime import datetime
 from decimal import Decimal
@@ -24,6 +24,7 @@ main = Blueprint('main', __name__)
 global current_total, last_total, all_total
 global goal, goal_percentage, goal_amount
 global current_cats, last_cats
+global current_upload, last_upload
 
 # conn = sqlite3.connect('C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite')
 database = 'C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite'
@@ -49,7 +50,6 @@ def home():
         f = form.filter.data
         if f == 'all_posts':
             notes = Note.query.all()
-            notes.reverse()
             flash('All Posts', 'alert-neutral')
             return render_template('home.html', title='Home', form=form, notes=notes)
         if f == 'my_posts':
@@ -61,11 +61,37 @@ def home():
             flash('My Suggestions', 'alert-neutral')
             return render_template('home.html', title='Home', form=form, notes=notes)
         if f == 'other_posts':
-            notes = [x for x in notes if x.author != current_user.username]
-            flash('Other Posts', 'alert-neutral')
+            notes = [x for x in notes if x.author != current_user.username and x.author != 'Dough Suggestions']
+            flash('Other User Posts', 'alert-neutral')
             return render_template('home.html', title='Home', form=form, notes=notes)
+    #if click_note(id):
+    #    notes = [x for x in notes if x.author != current_user.username and x.author != 'Dough Suggestions']
+    #    flash('Other User Posts', 'alert-neutral')
+    #    return render_template('home.html', title='Home', form=form, notes=notes)
 
     return render_template('home.html', title='Home', notes=notes, form=form)
+
+
+@main.route('/user_link/<string:name>')
+def user_link(name):
+    notes = Note.query.all()
+    notes = [x for x in notes if x.author == name]
+    flash(name + "'s Posts", 'alert-neutral')
+    return render_template('home.html', title='Home', form=Filter(), notes=notes)
+
+@main.route('/note_attachment/<string:chart>/<int:uid>')
+def note_attachment(chart, uid):
+    if chart == 'null':
+        print('null chart')
+    if chart == 'data_view':
+        generate_chart_raw(uid)
+    if chart == 'type_view':
+        generate_chart_pie(uid)
+    if chart == 'all_spending_view':
+        generate_chart_bar(uid)
+    notes = Note.query.all()
+    notes.reverse()
+    return render_template('home.html', title='Home', form=Filter(), notes=notes)
 
 
 @main.route("/about")
@@ -116,7 +142,7 @@ def allowed_file(filename):
 @main.route("/data", methods=['POST'])
 @login_required
 def data_upload():
-    global last_total, current_total, all_total, current_cats, last_cats, goal
+    global last_total, current_total, all_total, current_cats, last_cats, goal, current_upload, last_upload
     if request.method == 'POST':
         file = request.files['file']
         if file.filename == '':
@@ -147,7 +173,7 @@ def data_upload():
             if Had_Data:
                 update_totals(current_user.id, upload_id)
             else:
-                new_totals(current_user.id)
+                new_totals(current_user.id, upload_id)
 
             return render_template('data.html')
         else:
@@ -155,47 +181,16 @@ def data_upload():
             return render_template('data.html')
 
 
-def update_totals(uid, upload_id):
-    global last_total, current_total, all_total, current_cats, last_cats, goal
-    last_total = get_nums(str(uid), 'last_total')
-    current_total = get_nums(str(uid), 'current_total')
-    all_total = get_nums(str(uid), 'all_total')
-    goal = get_nums(str(uid), 'goal')
-
-    df = pd.read_sql(con=conn, sql='SELECT category, amount FROM transactions '
-                                   'WHERE userID=' + str(uid) + ' AND uploadID=' + str(upload_id) + ';')
-    last_total = current_total  # ********************************************************************************
-    current_total = df['amount'].sum()
-    all_total = all_total + current_total
-
-    conn.execute("UPDATE nums SET last_total=" + str(last_total) + ", current_total=" + str(current_total) +
-                 ", all_total=" + str(all_total) + ", goal=" + str(goal) + " WHERE userID=" + str(uid) + ";")
-    conn.commit()
-
-    current_cats = []
-    df = df.groupby(['category']).sum(axis=0)   # df['amount'] = df['amount'].abs()
-    a = df['amount'].tolist()
-    c = df.index.tolist()
-    n = 0
-    for x in c:
-        cat = x
-        amount = a[n]
-        percentage = '{0:.2f}%'.format((amount / current_total * 100))
-        current = (cat, amount, percentage)
-        current_cats.append(current)
-        n += 1
-
-    #print_nums()
-
-
-def new_totals(uid):
-    global last_total, current_total, all_total, current_cats, last_cats, goal
+def new_totals(uid, upload_id):
+    global last_total, current_total, all_total, current_cats, last_cats, goal, current_upload, last_upload
     last_total = 0
+    last_upload = 0
     last_cats = []
+
     df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID=' + str(uid) + ';')
     current_total = "{:.2f}".format(df['amount'].sum())
     all_total = current_total
-
+    current_upload = upload_id
     current_cats = []
     df = df.groupby(['category']).sum(axis=0)
     a = df['amount'].abs().tolist()
@@ -209,10 +204,56 @@ def new_totals(uid):
         current_cats.append(current)
         n += 1
 
-    new_nums = Nums(userID=current_user.id, last_total=last_total, current_total=current_total, all_total=all_total)
+    new_nums = Nums(userID=current_user.id, last_total=last_total, current_total=current_total, all_total=all_total,
+                    current_upload=current_upload, last_upload=last_upload, goal=0)
     db.session.add(new_nums)
     db.session.commit()
     #print_nums()
+
+
+def update_totals(uid, upload_id):
+    global last_total, current_total, all_total, current_cats, last_cats, goal, current_upload, last_upload
+    last_total = get_nums(str(uid), 'last_total')
+    current_total = get_nums(str(uid), 'current_total')
+    all_total = get_nums(str(uid), 'all_total')
+    goal = get_nums(str(uid), 'goal')
+    current_upload = get_nums(str(uid), 'current_upload')
+    last_upload = get_nums(str(uid), 'last_upload')
+
+    current_cats = []
+    #last_cats = current_cats
+
+    df = pd.read_sql(con=conn, sql='SELECT category, amount FROM transactions '
+                                   'WHERE userID=' + str(uid) + ' AND uploadID=' + str(upload_id) + ';')
+    last_total = current_total
+    current_total = df['amount'].sum()
+    all_total = all_total + current_total
+    last_upload = current_upload
+    current_upload = upload_id
+
+    conn.execute("UPDATE nums SET last_total=" + str(last_total) + ", current_total=" + str(current_total) +
+                 ", all_total=" + str(all_total) + ", goal=" + str(goal) + ", current_upload=" + str(current_upload) +
+                 ", last_upload=" + str(last_upload) + " WHERE userID=" + str(uid) + ";")
+    conn.commit()
+
+    df = df.groupby(['category']).sum(axis=0)   # df['amount'] = df['amount'].abs()
+    a = df['amount'].tolist()
+    c = df.index.tolist()
+    n = 0
+    for x in c:
+        cat = x
+        amount = a[n]
+        percentage = '{0:.2f}%'.format((amount / current_total * 100))
+        current = (cat, amount, percentage)
+        current_cats.append(current)
+        n += 1
+    #print_nums()
+
+
+def generate_suggestion(uid):
+    global last_total, current_total, all_total, current_cats, last_cats, goal, current_upload, last_upload
+
+
 
 
 def print_nums():
@@ -242,22 +283,23 @@ def dashboard():
     form = DataTable()
     form1 = SetGoal()
     userid = current_user.id
+
     if not has_data(userid, conn):
         flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
         html = '<p>No Data Available - Upload Transactions on Data Page</p>'
-        totals = ''
+        #totals = ''
     else:
         html = generate_chart_table(userid)
-        totals = generate_totals_table(userid)
+        #totals = generate_totals_table(userid)
 
-    if 'submit' in request.form and form1.validate():
+    if 'submit' in request.form and form1.validate() and has_data(userid, conn):
         if str(form1.set_goal.data) == str(0):
             print("new goal = 0")
         else:
             new_goal = form1.set_goal.data
             set_new_goal(new_goal)
 
-    if 'submit' in request.form:
+    if 'submit' in request.form and has_data(userid, conn):
         if request.form.get('data_view'):
             generate_chart_raw(userid)
         if request.form.get('type_view'):
@@ -265,7 +307,10 @@ def dashboard():
         if request.form.get('all_spending_view'):
             generate_chart_bar(userid)
         if request.form.get('progress_view'):
-            generate_chart_progress(userid)
+            global current_upload, last_upload
+            current_upload = get_nums(str(userid), 'current_upload')
+            last_upload = get_nums(str(userid), 'last_upload')
+            generate_chart_progress(userid, current_upload, last_upload)
 
         clear = True if request.form.get('clear_data') else False   # button = form.clear_data.data
         if clear:
@@ -278,7 +323,7 @@ def dashboard():
             flash('All user financial information successfully removed.', category='alert-success')
             html = '<p>No Data Available - Upload Transactions on Data Page</p>'
 
-    return render_template('dashboard.html', title='Dashboard', form=form, form1=form1, chart_html=html, totals_html=totals)
+    return render_template('dashboard.html', title='Dashboard', form=form, form1=form1, chart_html=html)  #, totals_html=totals)
 
 
 def generate_chart_table(uid):
@@ -292,11 +337,6 @@ def generate_chart_raw(uid):
     fig = go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'),
                                    cells=dict(values=[df.date, df.description, df.category, df.amount], fill_color='lavender', align='left'))])
     fig.show()
-
-
-def generate_totals_table(uid):
-    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
-
 
 
 def generate_chart_pie(uid):
@@ -315,17 +355,30 @@ def generate_chart_bar(uid):
     df = df.groupby(['date']).sum(axis=0)
     x = df.index.tolist()
     y = df['amount'].tolist()
-    fig = go.Figure(data=[go.Bar(y=y, x=x)])
+    fig = go.Figure(data=[go.Bar(y=y, x=x, name='Amount')])
+    fig.add_trace(go.Scatter(x=x, y=y, name='Trend Line'))
+    fig.update_layout(title='Spending per Day', xaxis_title='Date of All Uploaded Transactions',
+                      yaxis_title='Amount Spent (per Day)')
     fig.show()
 
 
-def generate_chart_progress(uid):  # line graph
-    df = pd.read_sql(con=conn, sql="SELECT date, amount FROM transactions WHERE userID=" + str(uid) + ";")
+def generate_chart_progress(uid, current_upload, last_upload):  # line graph
+    df = pd.read_sql(con=conn, sql="SELECT date, amount FROM transactions WHERE userID="
+                                   + str(uid) + " AND uploadID=" + str(current_upload) + ";")
     df['amount'] = df['amount'].abs()
     df = df.groupby(['date']).sum(axis=0)
     x = df.index.tolist()
     y = df['amount'].tolist()
-    fig = go.Figure(data=[go.Scatter(y=y, x=x)])
+    fig = go.Figure(data=[go.Line(y=y, x=x, name='Most Recent Month/Upload')])
+    #fig = px.line(df, x='Month Time Span', y='Amount', title='Goal Progress Tracker')
+    if last_upload != 0:
+        df2 = pd.read_sql(con=conn, sql="SELECT date, amount FROM transactions WHERE userID="
+                                   + str(uid) + " AND uploadID=" + str(last_upload) + ";")
+        df2['amount'] = df2['amount'].abs()
+        df2 = df2.groupby(['date']).sum(axis=0)
+        x = df2.index.tolist()
+        y = df2['amount'].tolist()
+        fig.add_trace(go.Line(y=y, x=x, name='Last Month/Upload'))
     fig.show()
 
 
@@ -412,7 +465,15 @@ def highlight_max(s):
 def new_note():
     form = NoteForm()
     if form.validate_on_submit():
-        note = Note(title=form.title.data, content=form.content.data, author=current_user.username, userID=current_user.id, date=datetime.now(), id=uuid1().time_low, img="/"+current_user.image)
+        type = form.chart.data
+
+        if str(form.chart.data) == '<null>':
+            attachment = '<null>'
+        else:
+            attachment = str(form.chart.data)
+        print(attachment)
+        note = Note(title=form.title.data, content=form.content.data, author=current_user.username, attachment=attachment,
+                    userID=current_user.id, date=datetime.now(), id=uuid1().time_low, img="/"+current_user.image)
         db.session.add(note)
         db.session.commit()
         flash('Your note has been created!', category='alert-success')
@@ -430,19 +491,31 @@ def note(id):
 @login_required
 def update_note(id):
     note = Note.query.get_or_404(id)
-    if note.author != current_user:
+    if note.author != current_user.username:
         os.abort(403)
     form = NoteForm()
     if form.validate_on_submit():
+        if form.chart.data is not None:
+            attachment = request.form.get('data_view')
+        else:
+            if request.form.get('data_view'):
+                attachment = 'data_view'
+            if request.form.get('type_view'):
+                attachment = 'type_view'
+            if request.form.get('all_spending_view'):
+                attachment = 'all_spending_view'
+            else:
+                attachment = None
+        note.attachment = attachment
         note.title = form.title.data
         note.content = form.content.data
         db.session.commit()
-        flash('Your note has been updated!', 'success')
+        flash('Your note has been updated!', 'alert-success')
         return redirect(url_for('main.note', id=note.id))
     elif request.method == 'GET':
         form.title.data = note.title
         form.content.data = note.content
-    return render_template('create_note.html', title='Update Note', form=form, legend='Update Note')
+    return render_template('create_note.html', title='Update Note', form=form, legend='Update Note', note=note)
 
 
 @main.route("/note/<int:id>/delete", methods=['POST'])
@@ -454,6 +527,8 @@ def delete_note(id):
     db.session.delete(note)
     db.session.commit()
     flash('Your note has been deleted!', category='alert-success')
-    return render_template('home.html', title='Home')
+    notes = Note.query.all()
+    notes.reverse()
+    return render_template('home.html', title='Home', form=Filter(), notes=notes)
 
 

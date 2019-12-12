@@ -49,9 +49,9 @@ class SetGoal(FlaskForm):
 
 
 VIEWS = [('none', 'Select View'), ('data_view', 'View Raw Table'), ('type_view', 'View By Category'),
-         ('all_spending_view', 'View All Spending'), ('progress_view', 'View Goal Progress')]
+         ('all_spending_view', 'View All Spending')]  #, ('progress_view', 'View Goal Progress')]
 class DataView(FlaskForm):
-    data_views = SelectField(label='View Data', default='Select View', choices=VIEWS)
+    data_views = SelectField(default='Select View', choices=VIEWS)
 
 
 class DataTable(FlaskForm):
@@ -67,6 +67,8 @@ class DataTable(FlaskForm):
 class NoteForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     content = TextAreaField('Content', validators=[DataRequired()])
+    chart = wtforms.FormField(DataView)
+    #attach = FileField('Attach Picture to Post', validators=[FileAllowed(['jpg', 'png'])])
     submit = SubmitField('Post')
 
 

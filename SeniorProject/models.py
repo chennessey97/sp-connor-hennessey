@@ -52,6 +52,7 @@ class Note(db.Model):
     content = db.Column(db.String(120), nullable=False)
     userID = db.Column(db.Integer(), nullable=False)
     img = db.Column(db.String(100), default=User.image)
+    attachment = db.Column(db.String())
 
 
 class Nums(db.Model):
@@ -61,6 +62,8 @@ class Nums(db.Model):
     current_total = db.Column(db.Integer())
     all_total = db.Column(db.Integer())
     goal = db.Column(db.Integer(), default=0)
+    current_upload = db.Column(db.Integer(), default=0)
+    last_upload = db.Column(db.Integer(), default=0)
     #current_cats = db.Column()
     #last_cats = db.Column()
 

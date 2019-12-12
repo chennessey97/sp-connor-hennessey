@@ -8,6 +8,7 @@
         <small class="text-muted">{{ note.date.strftime('%Y-%m-%d') }}</small>
         {% if note.author == current_user.username %}
           <div>
+            <a class="btn btn-secondary btn-sm mt-1 mb-1" style="background-color: #5f788a;" href="{{ url_for('main.home') }}">Feed</a>
             <a class="btn btn-secondary btn-sm mt-1 mb-1" href="{{ url_for('main.update_note', id=note.id) }}">Update</a>
             <button type="button" class="btn btn-danger btn-sm m-1" data-toggle="modal" data-target="#deleteModal">Delete</button>
           </div>
