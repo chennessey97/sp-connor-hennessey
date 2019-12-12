@@ -123,8 +123,6 @@ def data_upload():
             return render_template('data.html')
         if file:
             if has_data(current_user.id, conn):
-                #last_total = current_total
-                #last_cats = current_cats
                 Had_Data = True
             else:
                 Had_Data = False
@@ -361,12 +359,15 @@ def has_data(uid, conn):
 
 def set_new_goal(new_goal):
     global active_goal
+    active_goal = get_nums(current_user.id, str(active_goal))
     if active_goal:
         new_goal_message = "I am switching my current goal from " + current_user.goal + " to " + new_goal + "!"
         goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
         db.session.add(goal_note)
         db.session.commit()
         current_user.goal = new_goal
+        conn.execute("UPDATE nums SET active_goal=" + str(active_goal) + " WHERE userID=" + str(current_user.id) + ";")
+        conn.commit()
     else:
         new_goal_message = "My goal is to reduce my spending by " + new_goal + "!"  # *********************************
         goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
@@ -374,11 +375,8 @@ def set_new_goal(new_goal):
         db.session.commit()
         current_user.goal = new_goal
         active_goal = True
-   # goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
-   # db.session.add(goal_note)
-   # db.session.commit()
-   # current_user.goal = new_goal
-   # flash(new_goal_message, category='alert-success')
+        conn.execute("UPDATE nums SET active_goal=" + str(active_goal) + " WHERE userID=" + str(current_user.id) + ";")
+        conn.commit()
 
 
 def quick_note(note_content):
