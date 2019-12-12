@@ -1,7 +1,7 @@
 import os
 from . import db
 from .models import User, FileInput, Transaction, Chart, Note, Nums
-from .forms import RegistrationForm, LoginForm, UpdateAccountForm, DataTable, NoteForm, Filter
+from .forms import UpdateAccountForm, DataTable, NoteForm, Filter, SetGoal, DataView, GOALS, VIEWS
 from PIL import Image
 from flask_login import login_required, current_user
 from flask import Blueprint, render_template, redirect, url_for, request, flash, app
@@ -22,9 +22,8 @@ main = Blueprint('main', __name__)
 
 # Global Variables (use keyword 'global' when referencing/modifying):
 global current_total, last_total, all_total
-global goal_percentage, goal_amount
+global goal, goal_percentage, goal_amount
 global current_cats, last_cats
-global active_goal
 
 # conn = sqlite3.connect('C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite')
 database = 'C:/Users/Connor/PycharmProjects/sp-connor-hennessey/SeniorProject/db.sqlite'
@@ -44,11 +43,13 @@ conn = create_connection(database)
 @main.route("/home", methods=['GET', 'POST'])  # Root/Home page
 def home():
     notes = Note.query.all()
+    notes.reverse()
     form = Filter()
     if form.validate_on_submit():
         f = form.filter.data
         if f == 'all_posts':
             notes = Note.query.all()
+            notes.reverse()
             flash('All Posts', 'alert-neutral')
             return render_template('home.html', title='Home', form=form, notes=notes)
         if f == 'my_posts':
@@ -115,7 +116,7 @@ def allowed_file(filename):
 @main.route("/data", methods=['POST'])
 @login_required
 def data_upload():
-    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    global last_total, current_total, all_total, current_cats, last_cats, goal
     if request.method == 'POST':
         file = request.files['file']
         if file.filename == '':
@@ -126,7 +127,6 @@ def data_upload():
                 Had_Data = True
             else:
                 Had_Data = False
-                active_goal = False
 
             filename = file.filename
             file.save('SeniorProject/static/uploads/'+filename)
@@ -156,11 +156,11 @@ def data_upload():
 
 
 def update_totals(uid, upload_id):
-    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    global last_total, current_total, all_total, current_cats, last_cats, goal
     last_total = get_nums(str(uid), 'last_total')
     current_total = get_nums(str(uid), 'current_total')
     all_total = get_nums(str(uid), 'all_total')
-    active_goal = bool(get_nums(str(uid), 'active_goal'))
+    goal = get_nums(str(uid), 'goal')
 
     df = pd.read_sql(con=conn, sql='SELECT category, amount FROM transactions '
                                    'WHERE userID=' + str(uid) + ' AND uploadID=' + str(upload_id) + ';')
@@ -169,7 +169,7 @@ def update_totals(uid, upload_id):
     all_total = all_total + current_total
 
     conn.execute("UPDATE nums SET last_total=" + str(last_total) + ", current_total=" + str(current_total) +
-                 ", all_total=" + str(all_total) + ", active_goal=" + str(active_goal) + " WHERE userID=" + str(uid) + ";")
+                 ", all_total=" + str(all_total) + ", goal=" + str(goal) + " WHERE userID=" + str(uid) + ";")
     conn.commit()
 
     current_cats = []
@@ -185,14 +185,13 @@ def update_totals(uid, upload_id):
         current_cats.append(current)
         n += 1
 
-    print_nums()
+    #print_nums()
 
 
 def new_totals(uid):
-    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    global last_total, current_total, all_total, current_cats, last_cats, goal
     last_total = 0
     last_cats = []
-    active_goal = False
     df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID=' + str(uid) + ';')
     current_total = "{:.2f}".format(df['amount'].sum())
     all_total = current_total
@@ -210,18 +209,18 @@ def new_totals(uid):
         current_cats.append(current)
         n += 1
 
-    new_nums = Nums(userID=current_user.id, last_total=last_total, current_total=current_total, all_total=all_total, active_goal=active_goal)
+    new_nums = Nums(userID=current_user.id, last_total=last_total, current_total=current_total, all_total=all_total)
     db.session.add(new_nums)
     db.session.commit()
-    print_nums()
+    #print_nums()
 
 
 def print_nums():
-    global last_total, current_total, all_total, current_cats, last_cats, active_goal
+    global last_total, current_total, all_total, current_cats, last_cats, goal
     print('Last Total: ' + str(last_total))
     print('Current Total: ' + str(current_total))
     print('All Total: ' + str(all_total))
-    print('Active Goal: ' + str(active_goal))
+    print('Goal: ' + str(goal))
     #for x in current_cats:
     #    print("Current Cats: " + str(x))
     #for x in last_cats:
@@ -230,9 +229,10 @@ def print_nums():
 
 def get_nums(uid, thing):
     cursor = conn.cursor()
-    cursor.execute("SELECT " + thing + " FROM nums WHERE userID=" + uid + ";")
+    cursor.execute("SELECT " + thing + " FROM nums WHERE userID=" + str(uid) + ";")
     conn.commit()
     r = cursor.fetchone()
+    #print(r[0])
     return r[0]
 
 
@@ -240,6 +240,7 @@ def get_nums(uid, thing):
 @login_required
 def dashboard():
     form = DataTable()
+    form1 = SetGoal()
     userid = current_user.id
     if not has_data(userid, conn):
         flash('You have not uploaded any data yet. Input an excel spreadsheet with your finances.', category='alert-error')
@@ -248,30 +249,42 @@ def dashboard():
     else:
         html = generate_chart_table(userid)
         totals = generate_totals_table(userid)
-    button = form.clear_data.data
-    if form.set_goal.data:
-        set_new_goal(form.set_goal.data)
-    if form.validate_on_submit():
-        option = form.data_views.data
-        if option == 'data_view':
-            x = generate_chart_raw(userid)
-        if option == 'type_view':
-            x = generate_chart_pie(userid)
-        if option == 'all_spending_view':
-            x = generate_chart_bar(userid)
-        if option == 'progress_view':
-            x = generate_chart_progress(userid)
 
-        clear = True if request.form.get('clear_data') else False
+    if 'submit' in request.form and form1.validate():
+        if str(form1.set_goal.data) == str(0):
+            print("new goal = 0")
+        else:
+            new_goal = form1.set_goal.data
+            set_new_goal(new_goal)
+
+    if 'submit' in request.form:
+        if request.form.get('data_view'):
+            generate_chart_raw(userid)
+        if request.form.get('type_view'):
+            generate_chart_pie(userid)
+        if request.form.get('all_spending_view'):
+            generate_chart_bar(userid)
+        if request.form.get('progress_view'):
+            generate_chart_progress(userid)
+
+        clear = True if request.form.get('clear_data') else False   # button = form.clear_data.data
         if clear:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM transactions WHERE userID =' + str(userid) + ';')
             cursor.execute('DELETE FROM nums WHERE userID =' + str(userid) + ';')
+            cursor.execute('DELETE FROM input WHERE userID =' + str(userid) + ';')
+            cursor.execute('DELETE FROM notes WHERE userID =' + str(userid) + ';')
             conn.commit()
             flash('All user financial information successfully removed.', category='alert-success')
             html = '<p>No Data Available - Upload Transactions on Data Page</p>'
 
-    return render_template('dashboard.html', title='Dashboard', form=form, chart_html=html, totals_html=totals)
+    return render_template('dashboard.html', title='Dashboard', form=form, form1=form1, chart_html=html, totals_html=totals)
+
+
+def generate_chart_table(uid):
+    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
+    html = df.to_html()
+    return html
 
 
 def generate_chart_raw(uid):
@@ -279,17 +292,12 @@ def generate_chart_raw(uid):
     fig = go.Figure(data=[go.Table(header=dict(values=list(df.columns), fill_color='paleturquoise', align='left'),
                                    cells=dict(values=[df.date, df.description, df.category, df.amount], fill_color='lavender', align='left'))])
     fig.show()
-    return fig
 
-def generate_chart_table(uid):
-    df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
-    html = df.to_html()
-    return html
 
 def generate_totals_table(uid):
     df = pd.read_sql(con=conn, sql='SELECT date, description, category, amount FROM transactions WHERE userID='+str(uid)+';')
-    html = df.to_html()
-    return html
+
+
 
 def generate_chart_pie(uid):
     df = pd.read_sql(con=conn, sql="SELECT category, amount FROM transactions WHERE userID="+str(uid)+";")    #df = df.set_index('category', drop=False).groupby((['category', 'amount'])).sum(axis=0)
@@ -346,7 +354,6 @@ def get_total_trans(uid, total=0):
 
 def has_data(uid, conn):
     cursor = conn.cursor()
-    #count = cursor.execute("SELECT COUNT(*) FROM transactions WHERE userID ="+str(uid)+";")
     cursor.execute("SELECT * FROM transactions WHERE userID =" + str(uid) + ";")
     data = cursor.fetchone()
     if data is None:
@@ -358,33 +365,36 @@ def has_data(uid, conn):
 
 
 def set_new_goal(new_goal):
-    global active_goal
-    active_goal = get_nums(current_user.id, str(active_goal))
-    if active_goal:
-        new_goal_message = "I am switching my current goal from " + current_user.goal + " to " + new_goal + "!"
-        goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
-        db.session.add(goal_note)
-        db.session.commit()
-        current_user.goal = new_goal
-        conn.execute("UPDATE nums SET active_goal=" + str(active_goal) + " WHERE userID=" + str(current_user.id) + ";")
-        conn.commit()
-    else:
+    global goal
+    goal = get_nums(current_user.id, thing='goal')
+    #print("goal = " + str(goal))
+    #print("new goal = " + str(new_goal))
+
+    if goal == 0 and new_goal != 0:
         new_goal_message = "My goal is to reduce my spending by " + new_goal + "!"  # *********************************
-        goal_note = Note(id=uuid1().time_low, date=datetime.now(), content=new_goal_message, userID=current_user.id)
+        goal_note = Note(id=uuid1().time_low, title="New Goal!", author=current_user.username,
+                         date=datetime.now(), content=new_goal_message, userID=current_user.id, img=current_user.image)
         db.session.add(goal_note)
         db.session.commit()
-        current_user.goal = new_goal
-        active_goal = True
-        conn.execute("UPDATE nums SET active_goal=" + str(active_goal) + " WHERE userID=" + str(current_user.id) + ";")
+        goal = new_goal
+        conn.execute("UPDATE nums SET goal=" + str(goal) + " WHERE userID=" + str(current_user.id) + ";")
         conn.commit()
-
-
-def quick_note(note_content):
-    note = Note(id=uuid1().time_low, author=current_user.username, date=datetime.now(), content=note_content, userID=current_user.id, title='New_Note_'+str(datetime.now()))
-    db.session.add(note)
-    db.session.commit()
-    flash('Your note has been created!', 'success')
-    return redirect(url_for('home'))
+        flash('New Goal Set! Good Luck!', category='alert-success')
+    elif goal != 0 and new_goal != 0:
+        new_goal_message = "I am switching my current goal from " + str(goal) + " to " + str(new_goal) + "!"
+        goal_note = Note(id=uuid1().time_low, title="New Goal!", author=current_user.username,
+                         date=datetime.now(), content=new_goal_message, userID=current_user.id, img=current_user.image)
+        db.session.add(goal_note)
+        db.session.commit()
+        goal = new_goal
+        conn.execute("UPDATE nums SET goal=" + str(goal) + " WHERE userID=" + str(current_user.id) + ";")
+        conn.commit()
+        flash('Goal Updated! Good Luck!', category='alert-success')
+    elif goal != 0 and new_goal == 0:
+        conn.execute("UPDATE nums SET goal=" + str(new_goal) + " WHERE id=" + str(current_user.id) + ";")
+        flash("Goal Removed! Don't give up that easily!", category='alert-success')
+    else:
+        print("New Goal Failed To Update")
 
 
 def color_negative_red(val):

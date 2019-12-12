@@ -9,7 +9,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100))
     image = db.Column(db.String(50), nullable=False, default='static/icons/user.png')
-    goal = db.Column(db.Integer(), nullable=True, default='null')
+    #goal = db.Column(db.Integer(), nullable=True, default='0')
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
@@ -57,10 +57,10 @@ class Note(db.Model):
 class Nums(db.Model):
     __tablename__ = 'nums'
     userID = db.Column(db.Integer(), primary_key=True, unique=True, nullable=False)
-    last_total = db.Column()
-    current_total = db.Column()
-    all_total = db.Column()
-    active_goal = db.Column()
+    last_total = db.Column(db.Integer())
+    current_total = db.Column(db.Integer())
+    all_total = db.Column(db.Integer())
+    goal = db.Column(db.Integer(), default=0)
     #current_cats = db.Column()
     #last_cats = db.Column()
 
